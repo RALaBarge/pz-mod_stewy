@@ -11,7 +11,7 @@ ingredients into cooking pots one at a time. Right-click anywhere to open the St
 window, select your ingredients, hit PREP, and watch your character add them all
 automatically — distributed evenly across however many pots you have.
 
-![PZ-Stewy.png]
+![PZ-Stewy.png](PZ-Stewy.png)
 
 ## Installation
 
