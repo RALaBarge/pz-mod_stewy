@@ -183,6 +183,7 @@ function Stewy_GetValidIngredients(player, potItem)
         return {}
     end
 
+    local recipeName = recipe:getName() or ""
     local list = {}
     local inv = player:getInventory()
     if not inv then return list end
@@ -199,18 +200,51 @@ function Stewy_GetValidIngredients(player, potItem)
                 or string.find(ft, "CookingPot") or string.find(ft, "BucketOf")
                 or string.find(ft, "PotOf") or string.find(ft, "PotForged"))
             if not isPot then
-                -- Ask the ENGINE if this item is valid for the stew recipe
+                local valid = false
+
+                -- Check 1: Regular ingredient via engine API
                 local ok, itemRecipe = pcall(function()
                     return recipe:getItemRecipe(it)
                 end)
                 if ok and itemRecipe then
+                    valid = true
+                end
+
+                -- Check 2: Items missed by getItemRecipe (spices like Salt,
+                -- Pepper, etc. are handled separately by the engine).
+                -- We check the item's script EvolvedRecipe string directly
+                -- for "Stew". This catches anything the engine knows about
+                -- without relying on isSpice() which is unreliable.
+                if not valid then
+                    local ok2, hasStew = pcall(function()
+                        local si = it:getScriptItem()
+                        if not si then return false end
+                        -- getEvolvedRecipeName returns string like "Pizza:1;Soup:1;Stew:1;..."
+                        if si.getEvolvedRecipeName then
+                            local er = si:getEvolvedRecipeName()
+                            if er and string.find(er, "Stew") then return true end
+                        end
+                        -- Alternate method name
+                        if si.getEvolvedRecipe then
+                            local er = si:getEvolvedRecipe()
+                            if er and type(er) == "string" and string.find(er, "Stew") then return true end
+                        end
+                        return false
+                    end)
+                    if ok2 and hasStew then
+                        valid = true
+                        print("[Stewy] EvolvedRecipe match: " .. ft)
+                    end
+                end
+
+                if valid then
                     table.insert(list, it)
                 end
             end
         end
     end
 
-    print("[Stewy] Engine validated " .. #list .. " ingredients")
+    print("[Stewy] Engine validated " .. #list .. " ingredients (including spices)")
     return list
 end
 
@@ -273,7 +307,7 @@ function ISStewPrepWindow:initialise()
     self:addChild(foodHeader)
     y = y + 25
 
-    local listHeight = self.height - y - 90
+    local listHeight = self.height - y - 125
     self.foodListPanel = ISScrollingListBox:new(m, y, self.width - (m * 2), listHeight)
     self.foodListPanel:initialise()
     self.foodListPanel:instantiate()
@@ -285,6 +319,14 @@ function ISStewPrepWindow:initialise()
     self.foodListPanel.drawBorder = true
     self:addChild(self.foodListPanel)
     y = y + listHeight + 5
+
+    -- Select All / Deselect All toggle button
+    self.selectAllBtn = ISButton:new(m, y, self.width - (m * 2), 25, "SELECT ALL", self, ISStewPrepWindow.onSelectAll)
+    self.selectAllBtn:initialise()
+    self.selectAllBtn:instantiate()
+    self.selectAllBtn.borderColor = {r = 0.4, g = 0.4, b = 0.7, a = 1}
+    self:addChild(self.selectAllBtn)
+    y = y + 30
 
     self.execBtn = ISButton:new(m, y, self.width - (m * 2), 30, "PREP STEW", self, ISStewPrepWindow.onExecute)
     self.execBtn:initialise()
@@ -344,6 +386,34 @@ function ISStewPrepWindow:prerender() ISPanel.prerender(self) end
 function ISStewPrepWindow:onClose()
     self:setVisible(false)
     self:removeFromUIManager()
+end
+
+--- Toggle all items selected/deselected. If any are unselected, select all.
+--- If all are already selected, deselect all.
+function ISStewPrepWindow:onSelectAll()
+    -- Check if all are currently selected
+    local allSelected = true
+    for _, entry in ipairs(self.foodListPanel.items) do
+        if entry.item and not entry.item.selected then
+            allSelected = false
+            break
+        end
+    end
+
+    -- Toggle: if all selected -> deselect all, otherwise select all
+    local newState = not allSelected
+    for _, entry in ipairs(self.foodListPanel.items) do
+        if entry.item then
+            entry.item.selected = newState
+        end
+    end
+
+    -- Update button text
+    if newState then
+        self.selectAllBtn:setTitle("DESELECT ALL")
+    else
+        self.selectAllBtn:setTitle("SELECT ALL")
+    end
 end
 
 -- ============================================================================
