@@ -545,10 +545,4 @@ StewyMod.onInventoryMenu = function(player, context, items)
 end
 Events.OnFillInventoryObjectContextMenu.Add(StewyMod.onInventoryMenu)
 
-StewyMod.onWorldMenu = function(playerNum, context, worldObjects, test)
-    if test then return end
-    context:addOption("Stewy: Prep Stew Ingredients", playerNum, StewyMod.openWindow)
-end
-Events.OnFillWorldObjectContextMenu.Add(StewyMod.onWorldMenu)
-
 print("[Stewy] >>> INITIALIZATION COMPLETE <<<")
