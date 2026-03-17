@@ -15,6 +15,8 @@ automatically — distributed evenly across however many pots you have.
 
 ## Installation
 
+> Note, this is for local mods only.  If you wanted to take your mod and publish it on the Steam Workshop, check out the PZ Wiki for the current version's directory structure
+
 1. Drop the `Stewy/` folder into `~/Zomboid/mods/` (Linux) or `%UserProfile%\Zomboid\mods\` (Windows)
 2. Enable the mod in the main menu: **Mods** screen
 3. **⚠️ CRITICAL ⚠️** Also enable it **per-save**: **Load → More Options → Mods**
